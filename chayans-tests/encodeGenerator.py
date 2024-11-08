@@ -17,7 +17,7 @@ for path in imagePathList:
         imageList.append(img)
         studentIds.append(os.path.splitext(path)[0])
     else:
-        print(f"Warning: Failed to load image at path: {img_path}")
+        print(f"Failed to load image at path: {img_path}")
 
 print(studentIds)
 print(len(imageList))
