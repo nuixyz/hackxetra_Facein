@@ -1,5 +1,8 @@
 import cv2
 import matplotlib.pyplot as plt
+import streamlit as st
+from PIL import Image
+
 face_classifier = cv2.CascadeClassifier(
     cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
 )
@@ -39,3 +42,4 @@ while True:
 
 video_capture.release()
 cv2.destroyAllWindows()
+    
