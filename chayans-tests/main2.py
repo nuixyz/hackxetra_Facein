@@ -8,7 +8,7 @@ cap = cv2.VideoCapture(1)
 cap.set(3, 1280)
 cap.set(4, 720)
 
-file = open('chayans-tests/EncodedFile.p', 'rb')
+file = open('EncodedFile.p', 'rb')
 encodedListAndIds = pickle.load(file)
 file.close()
 encodedList, studentIds = encodedListAndIds

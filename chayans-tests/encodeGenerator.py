@@ -3,7 +3,7 @@ import cv2
 import face_recognition
 import pickle
 
-imageFolderPath= 'chayans-tests/testSubjects'
+imageFolderPath= 'photos'
 imagePathList = os.listdir(imageFolderPath)
 
 imageList = []
@@ -34,6 +34,6 @@ encodedList = encodeGenerator(imageList)
 # print(encodedList)
 encodedListAndIds = [encodedList, studentIds]
 
-file = open("chayans-tests/EncodedFile.p", 'wb')
+file = open("EncodedFile.p", 'wb')
 pickle.dump(encodedListAndIds, file)
 file.close()
