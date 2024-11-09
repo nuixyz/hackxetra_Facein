@@ -15,7 +15,9 @@ encodedList, studentIds = encodedListAndIds
 print(studentIds)
 
 while True:
-  ret, frame = cap.read()
+  ret, fframe = cap.read()
+
+  frame = cv2.flip(fframe, 1)
 
   resizedImage = cv2.resize(frame, (0,0), None, 0.25, 0.25)
   resizedImage = cv2.cvtColor(resizedImage, cv2.COLOR_BGR2RGB)
