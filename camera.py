@@ -11,7 +11,7 @@ while True:
     print(frame)
     cv2.imshow("Capturing", frame)
 
-    key = cv2.waitKey(32)
+    key = cv2.waitKey(1)
     if key == ord(" "): 
         path = 'photos'
         filename = f"{username}.jpg"
