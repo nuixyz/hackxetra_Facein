@@ -1,63 +1,140 @@
 import cv2
 import numpy as np
 import pickle
+import base64
+from pymongo import MongoClient
+from datetime import datetime
 import face_recognition
+import time
 
-cap = cv2.VideoCapture(1)
-#change the below values to something else, these control the dimensions of the webcam
+#duration for class
+duration = 10
+
+#make a reload function for easier db refresh
+
+# MongoDB setup
+client = MongoClient("mongodb+srv://nuix:ymAmHW2Rdw2CgZAR@cluster0.vpcby.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+db = client["MyFirstDatabase"]
+collection = db["posts"]
+
+# Load known face encodings from EncodedFile.p
+file = open('EncodedFile.p', 'rb')
+encodedList, studentIds = pickle.load(file)
+file.close()
+
+# Load encodings and names from MongoDB
+def load_known_faces_from_mongodb():
+    mongo_encodings = []
+    mongo_names = []
+
+    for document in collection.find():
+        img_data = base64.b64decode(document["image"])
+        img_array = np.frombuffer(img_data, dtype=np.uint8)
+        img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+        
+        encodings = face_recognition.face_encodings(img)
+        if encodings:
+            mongo_encodings.append(encodings[0])
+            mongo_names.append(document["username"])
+
+    return mongo_encodings, mongo_names
+
+mongo_encodings, mongo_names = load_known_faces_from_mongodb()
+encodedList.extend(mongo_encodings)
+studentIds.extend(mongo_names)
+
+# Set up webcam
+cap = cv2.VideoCapture(1)  # Adjust index if needed
+
+# Verify if webcam opens correctly
+if not cap.isOpened():
+    print("Error: Could not open video device.")
+    exit()
+
 cap.set(3, 1280)
 cap.set(4, 720)
 
-file = open('EncodedFile.p', 'rb')
-encodedListAndIds = pickle.load(file)
-file.close()
-encodedList, studentIds = encodedListAndIds
-print(studentIds)
+start_time = time.time()
 
-while True:
-  ret, fframe = cap.read()
+while time.time() - start_time < duration:
+# while True:
+    ret, fframe = cap.read()
 
-  frame = cv2.flip(fframe, 1)
+    if not ret:
+        print("Failed to capture image. Exiting...")
+        break
 
-  resizedImage = cv2.resize(frame, (0,0), None, 0.25, 0.25)
-  resizedImage = cv2.cvtColor(resizedImage, cv2.COLOR_BGR2RGB)
+    frame = cv2.flip(fframe, 1)
 
-  faceLocations = face_recognition.face_locations(resizedImage)
-  encodeFrame = face_recognition.face_encodings(resizedImage, faceLocations)
+    resizedImage = cv2.resize(frame, (0, 0), None, 0.25, 0.25)
+    resizedImage = cv2.cvtColor(resizedImage, cv2.COLOR_BGR2RGB)
 
-  for encodeFace, faceLocation in zip(encodeFrame, faceLocations):
-    matches = face_recognition.compare_faces(encodedList, encodeFace)
-    faceDistance = face_recognition.face_distance(encodedList, encodeFace) #See how far apart the test image is from the known faces
+    faceLocations = face_recognition.face_locations(resizedImage)
+    encodeFrame = face_recognition.face_encodings(resizedImage, faceLocations)
 
-    # print("matches", matches)
-    # print("faceDistance", faceDistance)
+    for encodeFace, faceLocation in zip(encodeFrame, faceLocations):
+        matches = face_recognition.compare_faces(encodedList, encodeFace)
+        faceDistance = face_recognition.face_distance(encodedList, encodeFace)
+        matchIndex = np.argmin(faceDistance)
+        confidence = round(100 - np.min(faceDistance) * 100)
 
-    matchIndex = np.argmin(faceDistance)
-    # print("Match Index", matchIndex)
-    
+        if matches[matchIndex]:
+            studentName = studentIds[matchIndex]
+            print("Face Detected at index ", matchIndex)
+            print("User seems to be", studentName)
 
-    # Note: This isn't exactly the same as a "percent match". The scale isn't linear. But you can assume that images with a smaller distance are more similar to each other than ones with a larger distance. 
-    #Since I have subtracted it from 100, the opposite should be assumed.
-    confidence = round(100-np.min(faceDistance)*100)
+            # Update the database to mark the user as present
+            collection.update_one(
+                {"username": studentName},
+                {"$set": {
+                    "status": "present",
+                    "last_seen": datetime.now()
+                }}
+            )
+            print(f"Marked {studentName} as present in MongoDB.")
 
-    if matches[matchIndex]:
-      studentName = studentIds[matchIndex]
-      print("Face Detected at index ", matchIndex)
-      print("User seems to be", studentName)
+            # Draw a rectangle around the matched face
+            top, right, bottom, left = faceLocation
+            top, right, bottom, left = top * 4, right * 4, bottom * 4, left * 4
 
-      top, right, bottom, left = faceLocation
-      top, right, bottom, left = top * 4, right * 4, bottom * 4, left * 4
+            cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
+            cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 255, 0), cv2.FILLED)
+            cv2.putText(frame, studentName, (left + 6, bottom - 6), cv2.FONT_HERSHEY_DUPLEX, 1.0, (255, 255, 255), 1)
+            cv2.putText(frame, f"{confidence}%", (left, bottom + 25), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 1)
 
-      #Draw a rectangle around the matched face
-      cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
+    cv2.imshow("Webcam Face Verification", frame)
 
-      # Add label with student name below the rectangle
-      cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 255, 0), cv2.FILLED)
-      font = cv2.FONT_HERSHEY_DUPLEX
-      cv2.putText(frame, studentName, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
-      cv2.putText(frame, str(confidence), (left, bottom + 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 1)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
 
-  cv2.imshow("Webcam", frame)
+print("Your time is up lil meow meow")
+my_query = {"status":"present"}
 
-  if cv2.waitKey(1) & 0xFF == ord('q'):
-    break
+for x in collection.find(my_query):
+    dp = x['days present']
+    updated = {"$set":{"days present": dp + 1}}
+    collection.update_one(my_query,updated)
+
+tc = x['total classes']
+updated = {"$set": {"total classes": tc + 1}}
+collection.update_many({}, updated)
+
+# updt = {"total classes":{"$gt": 0}}
+
+# for y in collection.find(updt):
+#     print("Im inside the loop")
+#     dp = y['days present']
+#     tc = y['total classes']
+#     updated2 = {"$set":{"attendance percentage": 69}}
+#     collection.update_one(y,updated2)
+
+collection.update_many(
+  {},
+  {"$set": {
+    "status": "absent"
+  }}
+  )
+
+
+cap.release()
+cv2.destroyAllWindows()

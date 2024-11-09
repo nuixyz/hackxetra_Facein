@@ -3,7 +3,7 @@ import cv2
 import face_recognition
 import pickle
 
-imageFolderPath= 'photos'
+imageFolderPath= 'Photos'
 imagePathList = os.listdir(imageFolderPath)
 
 imageList = []

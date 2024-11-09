@@ -6,7 +6,8 @@ cap = cv2.VideoCapture(1)
 username = input("Please state your name: ")
 
 while True:
-    check, frame = cap.read()
+    check, fframe = cap.read()
+    frame = cv2.flip(fframe, 1)
     print(check)
     print(frame)
     cv2.imshow("Capturing", frame)
