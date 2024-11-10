@@ -10,18 +10,23 @@ CORS(app)  # Allow cross-origin requests for React frontend
 # MongoDB connection
 mongo_uri = "mongodb+srv://kostov:x63gFRW6XbWfYPU4@cluster0.vpcby.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 client = MongoClient(mongo_uri)
-db = client['user_registration']
-users_collection = db['users']
+# db = client['user_registration']
+# users_collection = db['users']
+db = client["MyFirstDatabase"]
+collection = db["posts"]
 
 @app.route('/')
 def home():
     return jsonify({"message": "Welcome to the API"})
 
-@app.route('/chayan')
-def randomFunc():
-    list12 = [1, 2, 3, 4, 5]
-    print(list12)
-    return jsonify(list12)  # Send the list as JSON
+@app.route('/api/users', methods=['GET'])
+def get_users():
+    users = collection.find({}, {"username": 1, "days present": 1, "total classes": 1})
+    
+    user_list = [{"username": user["username"], "daysPresent": user["days present"], "totalClasses": user["total classes"]} for user in users]
+    return jsonify(user_list)
+
+
 
 @app.route('/api/register', methods=['POST'])
 def register():

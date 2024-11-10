@@ -1,29 +1,42 @@
-import { useState, useEffect } from 'react';
-import axios from 'axios';
-import './App.css';
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 
 function App() {
-  const [data, setData] = useState([]);
+  const [users, setUsers] = useState([]);
 
-  // Fetch data from Flask API
+  // Fetch data from backend
   useEffect(() => {
-    axios.get('http://127.0.0.1:5000/chayan')
-      .then(response => {
-        setData(response.data);  // Set the list received from the backend
+    axios
+      .get("http://127.0.0.1:5000/api/users") // Update the URL to match the API endpoint
+      .then((response) => {
+        setUsers(response.data); // Set the data in state
       })
-      .catch(error => {
-        console.error('Error fetching data:', error);
+      .catch((error) => {
+        console.error("There was an error fetching the data!", error);
       });
   }, []);
 
   return (
     <div>
-      <h1>Data from Flask Backend</h1>
-      <ul>
-        {data.map((item, index) => (
-          <li key={index}>{item}</li>
-        ))}
-      </ul>
+      <h1>Facein</h1>
+      <table>
+        <thead>
+          <tr>
+            <th>Username</th>
+            <th>Days Present</th>
+            <th>Total Days</th>
+          </tr>
+        </thead>
+        <tbody>
+          {users.map((user, index) => (
+            <tr key={index}>
+              <td>{user.username}</td>
+              <td>{user.daysPresent}</td>
+              <td>{user.totalClasses}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
