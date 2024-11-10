@@ -1,7 +1,7 @@
 import cv2
 import os
 
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(0)
 
 username = input("Please state your name: ")
 
